@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:signals_flutter/signals_flutter.dart';
 import 'package:steel_strength/models/steel_section.dart';
 import 'package:steel_strength/services/calculator.dart';
-import 'package:steel_strength/router.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);

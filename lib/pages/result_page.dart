@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:steel_strength/models/steel_section.dart';
 import 'package:steel_strength/services/pdf_report.dart';
-import 'package:steel_strength/router.dart';
+
 
 class ResultPage extends StatelessWidget {
   final SteelSection? section;

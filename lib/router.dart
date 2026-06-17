@@ -1,5 +1,4 @@
 // lib/router.dart
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:steel_strength/pages/home_page.dart';
 import 'package:steel_strength/pages/result_page.dart';
