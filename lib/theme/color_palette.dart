@@ -23,4 +23,10 @@ class AppColors {
   static const Color accentPositive = Color(0xFF4CAF50);
   static const Color accentWarning = Color(0xFFFFC107);
   static const Color accentError = Color(0xFFF44336);
+
+  // Utilization gauge colors
+  static const Color gaugeSafe = Color(0xFF00E676);
+  static const Color gaugeWarning = Color(0xFFFFEA00);
+  static const Color gaugeCritical = Color(0xFFFF1744);
+  static const Color gaugeBackground = Color.fromRGBO(255, 255, 255, 0.05);
 }

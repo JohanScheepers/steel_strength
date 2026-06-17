@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:cue/cue.dart';
 import 'package:steel_strength/models/steel_section.dart';
 import 'package:steel_strength/services/serviceability_service.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/utilization_gauge.dart';
 
 class ServiceabilityPage extends StatefulWidget {
   const ServiceabilityPage({Key? key}) : super(key: key);
@@ -36,34 +40,50 @@ class _ServiceabilityPageState extends State<ServiceabilityPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Serviceability (Deflection)')),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          DropdownButtonFormField<SteelSection>(
-            decoration: const InputDecoration(labelText: 'Select Steel Section'),
-            items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
-            value: selectedSectionSignal.watch(context),
-            onChanged: (v) => selectedSectionSignal.value = v,
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Serviceability (Deflection)')),
+        body: Cue.onMount(
+          motion: .smooth(),
+          child: ListView(
+            padding: const EdgeInsets.all(24.0),
+            children: [
+              Actor(
+                acts: [.fadeIn(), .slideY(from: -0.1)],
+                child: GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<SteelSection>(
+                        decoration: const InputDecoration(labelText: 'Select Steel Section'),
+                        items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
+                        value: selectedSectionSignal.watch(context),
+                        onChanged: (v) => selectedSectionSignal.value = v,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Span Length (mm)'),
+                        keyboardType: TextInputType.number,
+                        initialValue: '5000',
+                        onChanged: (v) => spanSignal.value = double.tryParse(v) ?? 0.0,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Uniformly Distributed Load (kN/m)'),
+                        keyboardType: TextInputType.number,
+                        initialValue: '5',
+                        onChanged: (v) => loadSignal.value = double.tryParse(v) ?? 0.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildResults(),
+            ],
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Span Length (mm)'),
-            keyboardType: TextInputType.number,
-            initialValue: '5000',
-            onChanged: (v) => spanSignal.value = double.tryParse(v) ?? 0.0,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Uniformly Distributed Load (kN/m)'),
-            keyboardType: TextInputType.number,
-            initialValue: '5',
-            onChanged: (v) => loadSignal.value = double.tryParse(v) ?? 0.0,
-          ),
-          const SizedBox(height: 32),
-          _buildResults(),
-        ],
+        ),
       ),
     );
   }
@@ -84,26 +104,50 @@ class _ServiceabilityPageState extends State<ServiceabilityPage> {
     final liveSafe = ServiceabilityService.passesLiveLoad(deflectionMm: defl, spanMm: span);
     final totalSafe = ServiceabilityService.passesTotalLoad(deflectionMm: defl, spanMm: span);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    final util = defl / liveLimit;
+
+    return Actor(
+      delay: 150.ms,
+      acts: [.fadeIn(), .slideY(from: 0.1)],
+      child: GlassCard(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('Results', style: Theme.of(context).textTheme.titleLarge),
-            const Divider(),
-            Text('Maximum Deflection (δ): ${defl.toStringAsFixed(2)} mm', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Maximum Deflection (δ)', style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text('${defl.toStringAsFixed(2)} mm', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
             const SizedBox(height: 16),
-            Text('Live Load Limit (L/360): ${liveLimit.toStringAsFixed(2)} mm'),
-            Text('Status (Live): ${liveSafe ? "Pass" : "Fail"}', 
-              style: TextStyle(color: liveSafe ? Colors.green : Colors.red)),
-            const SizedBox(height: 8),
-            Text('Total Load Limit (L/250): ${totalLimit.toStringAsFixed(2)} mm'),
-            Text('Status (Total): ${totalSafe ? "Pass" : "Fail"}', 
-              style: TextStyle(color: totalSafe ? Colors.green : Colors.red)),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildChip('Live Limit: ${liveLimit.toStringAsFixed(1)} mm', liveSafe),
+                _buildChip('Total Limit: ${totalLimit.toStringAsFixed(1)} mm', totalSafe),
+              ],
+            ),
+            if (load > 0) ...[
+              const SizedBox(height: 24),
+              UtilizationGauge(
+                utilization: util,
+                label: 'Deflection Utilization',
+              ),
+            ]
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildChip(String text, bool isSafe) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isSafe ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isSafe ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
+      ),
+      child: Text(text, style: TextStyle(fontSize: 12, color: isSafe ? Colors.greenAccent : Colors.redAccent)),
     );
   }
 }

@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:cue/cue.dart';
 import 'package:steel_strength/models/steel_section.dart';
 import 'package:steel_strength/services/shear_service.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/utilization_gauge.dart';
 
 class ShearPage extends StatefulWidget {
   const ShearPage({Key? key}) : super(key: key);
@@ -35,28 +39,44 @@ class _ShearPageState extends State<ShearPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Shear Capacity')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<SteelSection>(
-              decoration: const InputDecoration(labelText: 'Select Steel Section'),
-              items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
-              value: selectedSectionSignal.watch(context),
-              onChanged: (v) => selectedSectionSignal.value = v,
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Shear Capacity')),
+        body: Cue.onMount(
+          motion: .smooth(),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Actor(
+                  acts: [.fadeIn(), .slideY(from: -0.1)],
+                  child: GlassCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        DropdownButtonFormField<SteelSection>(
+                          decoration: const InputDecoration(labelText: 'Select Steel Section'),
+                          items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
+                          value: selectedSectionSignal.watch(context),
+                          onChanged: (v) => selectedSectionSignal.value = v,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          decoration: const InputDecoration(labelText: 'Design Shear Force Vf (kN)'),
+                          keyboardType: TextInputType.number,
+                          onChanged: (v) => designShearSignal.value = double.tryParse(v) ?? 0.0,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _buildResults(),
+              ],
             ),
-            const SizedBox(height: 16),
-            TextFormField(
-              decoration: const InputDecoration(labelText: 'Design Shear Force Vf (kN)'),
-              keyboardType: TextInputType.number,
-              onChanged: (v) => designShearSignal.value = double.tryParse(v) ?? 0.0,
-            ),
-            const SizedBox(height: 32),
-            _buildResults(),
-          ],
+          ),
         ),
       ),
     );
@@ -72,21 +92,22 @@ class _ShearPageState extends State<ShearPage> {
     final util = vf > 0 ? (vf / vr) * 100 : 0.0;
     final isSafe = vf <= vr;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Actor(
+      delay: 150.ms,
+      acts: [.fadeIn(), .slideY(from: 0.1)],
+      child: GlassCard(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('Results', style: Theme.of(context).textTheme.titleLarge),
-            const Divider(),
-            Text('Web Area (Aw): ${(section.h * section.tw).toStringAsFixed(1)} mm²'),
-            Text('Shear Resistance (Vr): ${vr.toStringAsFixed(2)} kN', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            Text('Shear Resistance (Vr)', style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text('${vr.toStringAsFixed(1)} kN', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
             if (vf > 0) ...[
-              Text('Utilization: ${util.toStringAsFixed(1)}%'),
-              Text('Status: ${isSafe ? "Safe" : "Unsafe"}', 
-                style: TextStyle(color: isSafe ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              UtilizationGauge(
+                utilization: util / 100.0,
+                label: 'Shear Utilization',
+              ),
             ]
           ],
         ),

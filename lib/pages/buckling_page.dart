@@ -3,8 +3,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:signals_flutter/signals_flutter.dart';
+import 'package:cue/cue.dart';
 import 'package:steel_strength/models/steel_section.dart';
 import 'package:steel_strength/services/buckling_service.dart';
+import '../widgets/app_background.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/utilization_gauge.dart';
 
 class BucklingPage extends StatefulWidget {
   const BucklingPage({Key? key}) : super(key: key);
@@ -38,53 +42,69 @@ class _BucklingPageState extends State<BucklingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Axial Compression')),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          DropdownButtonFormField<SteelSection>(
-            decoration: const InputDecoration(labelText: 'Select Steel Section'),
-            items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
-            value: selectedSectionSignal.watch(context),
-            onChanged: (v) {
-              selectedSectionSignal.value = v;
-              if (v != null) {
-                customIySignal.value = v.Iy;
-              }
-            },
+    return AppBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Axial Compression')),
+        body: Cue.onMount(
+          motion: .smooth(),
+          child: ListView(
+            padding: const EdgeInsets.all(24.0),
+            children: [
+              Actor(
+                acts: [.fadeIn(), .slideY(from: -0.1)],
+                child: GlassCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<SteelSection>(
+                        decoration: const InputDecoration(labelText: 'Select Steel Section'),
+                        items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s.designation))).toList(),
+                        value: selectedSectionSignal.watch(context),
+                        onChanged: (v) {
+                          selectedSectionSignal.value = v;
+                          if (v != null) {
+                            customIySignal.value = v.Iy;
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Effective Length Factor (K)'),
+                        keyboardType: TextInputType.number,
+                        initialValue: '1.0',
+                        onChanged: (v) => kFactorSignal.value = double.tryParse(v) ?? 1.0,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Physical Length L (mm)'),
+                        keyboardType: TextInputType.number,
+                        initialValue: '3000',
+                        onChanged: (v) => lengthSignal.value = double.tryParse(v) ?? 0.0,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Minor-axis Inertia Iy (mm⁴)'),
+                        keyboardType: TextInputType.number,
+                        initialValue: customIySignal.value.toString(),
+                        key: ValueKey(customIySignal.value),
+                        onChanged: (v) => customIySignal.value = double.tryParse(v) ?? 1000000.0,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        decoration: const InputDecoration(labelText: 'Design Axial Force Cf (kN)'),
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => designAxialSignal.value = double.tryParse(v) ?? 0.0,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildResults(),
+            ],
           ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Effective Length Factor (K)'),
-            keyboardType: TextInputType.number,
-            initialValue: '1.0',
-            onChanged: (v) => kFactorSignal.value = double.tryParse(v) ?? 1.0,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Physical Length L (mm)'),
-            keyboardType: TextInputType.number,
-            initialValue: '3000',
-            onChanged: (v) => lengthSignal.value = double.tryParse(v) ?? 0.0,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Minor-axis Inertia Iy (mm⁴) [Not in DB]'),
-            keyboardType: TextInputType.number,
-            initialValue: customIySignal.value.toString(),
-            key: ValueKey(customIySignal.value),
-            onChanged: (v) => customIySignal.value = double.tryParse(v) ?? 1000000.0,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            decoration: const InputDecoration(labelText: 'Design Axial Force Cf (kN)'),
-            keyboardType: TextInputType.number,
-            onChanged: (v) => designAxialSignal.value = double.tryParse(v) ?? 0.0,
-          ),
-          const SizedBox(height: 32),
-          _buildResults(),
-        ],
+        ),
       ),
     );
   }
@@ -106,27 +126,49 @@ class _BucklingPageState extends State<BucklingPage> {
     final util = cf > 0 ? (cf / cr) * 100 : 0.0;
     final isSafe = cf <= cr;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Actor(
+      delay: 150.ms,
+      acts: [.fadeIn(), .slideY(from: 0.1)],
+      child: GlassCard(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text('Results', style: Theme.of(context).textTheme.titleLarge),
-            const Divider(),
-            Text('Effective Length (KL): ${kl.toStringAsFixed(1)} mm'),
-            Text('Radius of Gyration (r): ${r.toStringAsFixed(2)} mm'),
-            Text('Slenderness Ratio (λ): ${slenderness.toStringAsFixed(2)}'),
-            Text('Compression Resistance (Cr): ${cr.toStringAsFixed(2)} kN', style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
+            Text('Compression Resistance (Cr)', style: const TextStyle(color: Colors.white60, fontSize: 14)),
+            const SizedBox(height: 4),
+            Text('${cr.toStringAsFixed(1)} kN', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24)),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildChip('KL: ${kl.toStringAsFixed(0)} mm'),
+                _buildChip('r: ${r.toStringAsFixed(1)} mm'),
+                _buildChip('λ: ${slenderness.toStringAsFixed(1)}'),
+              ],
+            ),
             if (cf > 0) ...[
-              Text('Utilization: ${util.toStringAsFixed(1)}%'),
-              Text('Status: ${isSafe ? "Safe" : "Unsafe"}', 
-                style: TextStyle(color: isSafe ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              UtilizationGauge(
+                utilization: util / 100.0,
+                label: 'Compression Utilization',
+              ),
             ]
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 12, color: Colors.white70)),
     );
   }
 }
