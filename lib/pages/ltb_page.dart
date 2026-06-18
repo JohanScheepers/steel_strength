@@ -136,7 +136,6 @@ class _LtbPageState extends State<LtbPage> {
     );
     final mr = LtbService.calculateReducedMoment(section: section, Mu: mu);
     final util = mf > 0 ? (mf / mr) * 100 : 0.0;
-    final isSafe = mf <= mr;
 
     return Actor(
       delay: 150.ms,

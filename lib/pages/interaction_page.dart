@@ -103,7 +103,6 @@ class _InteractionPageState extends State<InteractionPage> {
     final ratio = InteractionService.calculateInteractionRatio(
       Cf: cf, Cr: cr, U1x: u1x, Mfx: mfx, Mrx: mrx, U1y: u1y, Mfy: mfy, Mry: mry
     );
-    final passes = ratio <= 1.0;
 
     return Actor(
       delay: 150.ms,

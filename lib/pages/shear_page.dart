@@ -90,7 +90,6 @@ class _ShearPageState extends State<ShearPage> {
 
     final vr = ShearService.calculateShearResistance(section);
     final util = vf > 0 ? (vf / vr) * 100 : 0.0;
-    final isSafe = vf <= vr;
 
     return Actor(
       delay: 150.ms,

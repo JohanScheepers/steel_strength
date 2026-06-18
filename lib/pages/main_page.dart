@@ -1,6 +1,5 @@
 // lib/pages/main_page.dart
 import 'package:flutter/material.dart';
-import 'package:cue/cue.dart';
 import 'package:go_router/go_router.dart';
 import '../widgets/app_background.dart';
 import '../widgets/glass_card.dart';

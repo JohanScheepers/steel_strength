@@ -124,7 +124,7 @@ class _BucklingPageState extends State<BucklingPage> {
     
     final cr = BucklingService.calculateCompressionResistance(section, slenderness);
     final util = cf > 0 ? (cf / cr) * 100 : 0.0;
-    final isSafe = cf <= cr;
+   // final isSafe = cf <= cr;
 
     return Actor(
       delay: 150.ms,
