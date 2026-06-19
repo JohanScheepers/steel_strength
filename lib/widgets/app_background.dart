@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/color_palette.dart';
+
 
 class AppBackground extends StatelessWidget {
   final Widget child;

@@ -18,7 +18,6 @@ class UtilizationGauge extends StatelessWidget {
     // Clamp visualization to 1.0 (100%), but allow text to show > 100%
     final double visualValue = utilization > 1.0 ? 1.0 : utilization;
     final double displayUtil = max(0.0, min(1.0, utilization));
-    final double remainingValue = 1.0 - visualValue;
 
     Color gaugeColor;
     if (utilization < 0.8) {
